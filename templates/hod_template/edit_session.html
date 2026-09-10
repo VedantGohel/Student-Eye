@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Edit Session{% endblock %}
+{% block page_title %}Edit Session #{{ session.id }}{% endblock %}
+
+{% block sidebar_menu %}
+<li class="nav-item"><a href="{% url 'hod_home' %}" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>Dashboard</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_sessions' %}" class="nav-link active"><i class="nav-icon fas fa-chart-bar"></i><p>Engagement Reports</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_manage_staff' %}" class="nav-link"><i class="nav-icon fas fa-users-cog"></i><p>Manage Staff</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_manage_students' %}" class="nav-link"><i class="nav-icon fas fa-user-graduate"></i><p>Manage Students</p></a></li>
+{% endblock %}
+
+{% block extra_css %}
+<style>.form-control{border-radius:8px;border:1px solid #ddd;}.form-control:focus{border-color:#0f3460;box-shadow:none;}</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header bg-warning">
+        <h3 class="card-title mb-0"><i class="fas fa-edit mr-2"></i>Edit Session #{{ session.id }}</h3>
+      </div>
+      <div class="card-body">
+        <!-- Current info -->
+        <div class="alert alert-info mb-4">
+          <strong>Current:</strong> {{ session.staff.user.get_full_name }} |
+          {{ session.subject.name|default:"No Subject" }} |
+          {{ session.session_date }} |
+          <span class="badge {% if session.status == 'done' %}badge-success{% elif session.status == 'failed' %}badge-danger{% else %}badge-warning{% endif %}">
+            {{ session.get_status_display }}
+          </span>
+        </div>
+
+        <form method="POST">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="font-weight-bold">Session Date</label>
+            <input type="date" name="session_date" class="form-control"
+                   value="{{ session.session_date|date:'Y-m-d' }}" required>
+          </div>
+
+          <div class="form-group">
+            <label class="font-weight-bold">Reassign Subject</label>
+            <select name="subject" class="form-control">
+              <option value="">— No Subject —</option>
+              {% for subj in subjects %}
+                <option value="{{ subj.id }}" {% if session.subject and session.subject.id == subj.id %}selected{% endif %}>
+                  {{ subj.name }} ({{ subj.course.name }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="font-weight-bold">Reassign Staff</label>
+            <select name="staff" class="form-control">
+              <option value="">— Keep Current ({{ session.staff.user.get_full_name }}) —</option>
+              {% for s in all_staff %}
+                <option value="{{ s.id }}" {% if session.staff.id == s.id %}selected{% endif %}>
+                  {{ s.user.get_full_name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="d-flex" style="gap:10px;">
+            <button type="submit" class="btn btn-warning px-4">
+              <i class="fas fa-save mr-1"></i> Save Changes
+            </button>
+            <a href="{% url 'hod_sessions' %}" class="btn btn-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

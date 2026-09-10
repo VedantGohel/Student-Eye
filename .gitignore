@@ -1,0 +1,42 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.egg-info/
+.Python
+build/
+dist/
+
+# ---- Virtual environments ----
+venv/
+env/
+.venv/
+
+# ---- Django ----
+db.sqlite3
+db.sqlite3-journal
+*.log
+staticfiles/
+
+# ---- Media (uploaded / generated content — may contain private data) ----
+media/videos/
+media/annotated/
+media/live_frames/
+media/profile_pics/
+
+# ---- Generated artefacts in project root ----
+*_annotated.mp4
+*_report.pdf
+
+# ---- Secrets ----
+.env
+.env.*
+!.env.example
+
+# ---- Editors / IDE ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

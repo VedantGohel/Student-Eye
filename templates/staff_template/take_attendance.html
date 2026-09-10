@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Take Attendance{% endblock %}
+{% block page_title %}Take Attendance{% endblock %}
+{% block sidebar_menu %}
+<li class="nav-item"><a href="{% url 'staff_home' %}" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>Dashboard</p></a></li>
+<li class="nav-item"><a href="{% url 'staff_upload_session' %}" class="nav-link"><i class="nav-icon fas fa-video"></i><p>Upload Session Video</p></a></li>
+<li class="nav-item"><a href="{% url 'staff_sessions' %}" class="nav-link"><i class="nav-icon fas fa-chart-bar"></i><p>My Sessions</p></a></li>
+<li class="nav-item"><a href="{% url 'staff_take_attendance' %}" class="nav-link active"><i class="nav-icon fas fa-clipboard-check"></i><p>Take Attendance</p></a></li>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><h3 class="card-title"><i class="fas fa-clipboard-check mr-2"></i>Take Attendance</h3></div>
+  <div class="card-body">
+    {% if subjects %}
+      <p class="text-muted">Select a subject to take attendance for today's class.</p>
+      <div class="row">
+        {% for s in subjects %}
+        <div class="col-md-4 mb-3">
+          <div class="card border" style="border-radius:12px;">
+            <div class="card-body text-center">
+              <i class="fas fa-book fa-2x mb-2" style="color:#0f3460;"></i>
+              <h5>{{ s.name }}</h5>
+              <small class="text-muted">{{ s.course.name }}</small>
+              <hr>
+              <button class="btn btn-primary btn-sm w-100">Mark Attendance</button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center text-muted py-4">
+        <i class="fas fa-book fa-3x mb-3 d-block" style="opacity:0.3;"></i>
+        No subjects assigned to you yet. Contact your HOD.
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

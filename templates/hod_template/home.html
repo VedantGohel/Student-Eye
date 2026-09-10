@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}HOD Dashboard{% endblock %}
+{% block page_title %}HOD Dashboard{% endblock %}
+
+{% block sidebar_menu %}
+<li class="nav-item"><a href="{% url 'hod_home' %}" class="nav-link active"><i class="nav-icon fas fa-tachometer-alt"></i><p>Dashboard</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_staff' %}" class="nav-link"><i class="nav-icon fas fa-chalkboard-teacher"></i><p>Add Staff</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_manage_staff' %}" class="nav-link"><i class="nav-icon fas fa-users-cog"></i><p>Manage Staff</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_student' %}" class="nav-link"><i class="nav-icon fas fa-user-plus"></i><p>Add Student</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_manage_students' %}" class="nav-link"><i class="nav-icon fas fa-user-graduate"></i><p>Manage Students</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_course' %}" class="nav-link"><i class="nav-icon fas fa-book"></i><p>Add Course</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_subject' %}" class="nav-link"><i class="nav-icon fas fa-book-open"></i><p>Add Subject</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_sessions' %}" class="nav-link"><i class="nav-icon fas fa-chart-bar"></i><p>Engagement Reports</p></a></li>
+{% endblock %}
+
+{% block extra_css %}
+<style>.chart-container{position:relative;height:260px;}</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats -->
+<div class="row">
+  <div class="col-lg-3 col-6">
+    <div class="small-box bg-gradient-primary">
+      <div class="inner"><h3>{{ total_students }}</h3><p>Total Students</p></div>
+      <div class="icon"><i class="fas fa-user-graduate"></i></div>
+      <a href="{% url 'hod_manage_students' %}" class="small-box-footer">View All <i class="fas fa-arrow-circle-right"></i></a>
+    </div>
+  </div>
+  <div class="col-lg-3 col-6">
+    <div class="small-box bg-gradient-success">
+      <div class="inner"><h3>{{ total_staff }}</h3><p>Total Staff</p></div>
+      <div class="icon"><i class="fas fa-chalkboard-teacher"></i></div>
+      <a href="{% url 'hod_manage_staff' %}" class="small-box-footer">View All <i class="fas fa-arrow-circle-right"></i></a>
+    </div>
+  </div>
+  <div class="col-lg-3 col-6">
+    <div class="small-box bg-gradient-warning">
+      <div class="inner"><h3>{{ total_courses }}</h3><p>Courses</p></div>
+      <div class="icon"><i class="fas fa-book"></i></div>
+      <a href="{% url 'hod_add_course' %}" class="small-box-footer">Manage <i class="fas fa-arrow-circle-right"></i></a>
+    </div>
+  </div>
+  <div class="col-lg-3 col-6">
+    <div class="small-box bg-gradient-danger">
+      <div class="inner"><h3>{{ total_subjects }}</h3><p>Subjects</p></div>
+      <div class="icon"><i class="fas fa-book-open"></i></div>
+      <a href="{% url 'hod_add_subject' %}" class="small-box-footer">Manage <i class="fas fa-arrow-circle-right"></i></a>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row">
+  <!-- Engagement Trend -->
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <i class="fas fa-chart-line mr-2" style="color:#0f3460;"></i>
+        <h3 class="card-title mb-0">Class Engagement Trend</h3>
+        <small class="ml-2 text-muted">Average attention across all sessions</small>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject-wise -->
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">
+        <i class="fas fa-book mr-2" style="color:#0f3460;"></i>
+        <h3 class="card-title mb-0">Subject-wise Engagement</h3>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="subjectChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Sessions -->
+<div class="card">
+  <div class="card-header d-flex align-items-center">
+    <i class="fas fa-chart-line mr-2" style="color:#0f3460;"></i>
+    <h3 class="card-title mb-0">Recent Engagement Sessions</h3>
+    <div class="ml-auto">
+      <a href="{% url 'hod_sessions' %}" class="btn btn-sm btn-primary">View All</a>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead class="thead-light">
+        <tr><th>#</th><th>Staff</th><th>Subject</th><th>Date</th><th>Avg Attention</th><th>Students</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for session in recent_sessions %}
+        <tr>
+          <td>{{ session.id }}</td>
+          <td>{{ session.staff.user.get_full_name }}</td>
+          <td>{{ session.subject.name|default:"—" }}</td>
+          <td>{{ session.session_date }}</td>
+          <td>
+            {% if session.avg_attention %}
+              <div class="progress" style="height:18px;border-radius:9px;">
+                <div class="progress-bar {% if session.avg_attention >= 70 %}bg-success{% elif session.avg_attention >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                     style="width:{{ session.avg_attention }}%;">{{ session.avg_attention|floatformat:1 }}%</div>
+              </div>
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ session.total_students }}</td>
+          <td>
+            <span class="badge {% if session.status == 'done' %}badge-success{% elif session.status == 'processing' %}badge-warning{% elif session.status == 'failed' %}badge-danger{% else %}badge-secondary{% endif %}">
+              {{ session.get_status_display }}
+            </span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-inbox fa-2x mb-2 d-block"></i>No engagement sessions yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+// Engagement Trend
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+new Chart(trendCtx, {
+  type: 'line',
+  data: {
+    labels: {{ trend_labels|safe }},
+    datasets: [{
+      label: 'Avg Attention %',
+      data: {{ trend_data|safe }},
+      borderColor: '#0f3460',
+      backgroundColor: 'rgba(15,52,96,0.08)',
+      borderWidth: 2.5,
+      pointBackgroundColor: '#e94560',
+      pointRadius: 5,
+      tension: 0.4,
+      fill: true,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { min: 0, max: 100, ticks: { callback: v => v + '%' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// Subject-wise Bar
+const subjectCtx = document.getElementById('subjectChart').getContext('2d');
+new Chart(subjectCtx, {
+  type: 'bar',
+  data: {
+    labels: {{ subj_labels|safe }},
+    datasets: [{
+      label: 'Avg Attention %',
+      data: {{ subj_data|safe }},
+      backgroundColor: ['#0f3460','#533483','#e94560','#27ae60','#f39c12'],
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { min: 0, max: 100, ticks: { callback: v => v + '%' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+</script>
+{% endblock %}

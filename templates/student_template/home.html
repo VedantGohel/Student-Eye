@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard{% endblock %}
+{% block page_title %}My Dashboard{% endblock %}
+
+{% block sidebar_menu %}
+<li class="nav-item">
+  <a href="{% url 'student_home' %}" class="nav-link active">
+    <i class="nav-icon fas fa-tachometer-alt"></i><p>Dashboard</p>
+  </a>
+</li>
+<li class="nav-item">
+  <a href="{% url 'student_attention_history' %}" class="nav-link">
+    <i class="nav-icon fas fa-chart-line"></i><p>Attention History</p>
+  </a>
+</li>
+<li class="nav-item">
+  <a href="{% url 'student_attendance' %}" class="nav-link">
+    <i class="nav-icon fas fa-calendar-check"></i><p>My Attendance</p>
+  </a>
+</li>
+{% endblock %}
+
+{% block content %}
+
+<!-- Welcome Banner -->
+<div class="row mb-3">
+  <div class="col-12">
+    <div class="card" style="background:linear-gradient(135deg,#0f3460,#533483);color:white;border:none;">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div>
+            <i class="fas fa-user-graduate fa-3x mr-3" style="opacity:0.4;"></i>
+          </div>
+          <div>
+            <h4 class="mb-1" style="color:white;">
+              Welcome, {{ request.user.get_full_name|default:request.user.username }}!
+            </h4>
+            <p class="mb-0" style="opacity:0.8;font-size:13px;">
+              Course: {{ student.course.name|default:"Not assigned" }}
+              &nbsp;|&nbsp; Roll No: {{ student.roll_no|default:"—" }}
+              &nbsp;|&nbsp; Session: {{ student.session|default:"—" }}
+            </p>
+          </div>
+          <div class="ml-auto text-right">
+            {% if overall_avg %}
+              <h2 class="mb-0" style="color:white;font-weight:700;">{{ overall_avg }}%</h2>
+              <small style="opacity:0.7;">Overall Attention</small>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Attention History Table -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <i class="fas fa-brain mr-2" style="color:#0f3460;"></i>
+        <h3 class="card-title mb-0">My Attention Scores</h3>
+        <div class="ml-auto">
+          <a href="{% url 'student_attention_history' %}" class="btn btn-sm btn-primary">Full History</a>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+          <thead class="thead-light">
+            <tr>
+              <th>Date</th>
+              <th>Subject</th>
+              <th>Attention Score</th>
+              <th>Dominant Emotion</th>
+              <th>Label</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for score in scores %}
+            <tr>
+              <td>{{ score.session.session_date }}</td>
+              <td>{{ score.session.subject.name|default:"—" }}</td>
+              <td>
+                <div class="progress" style="height:20px;border-radius:10px;">
+                  <div class="progress-bar
+                    {% if score.avg_attention >= 70 %}bg-success
+                    {% elif score.avg_attention >= 40 %}bg-warning
+                    {% else %}bg-danger{% endif %}"
+                    style="width:{{ score.avg_attention }}%;font-size:12px;font-weight:600;">
+                    {{ score.avg_attention|floatformat:1 }}%
+                  </div>
+                </div>
+              </td>
+              <td>
+                <i class="fas fa-smile mr-1"></i>
+                {{ score.dominant_emotion|default:"—"|capfirst }}
+              </td>
+              <td>
+                <span class="badge badge-pill
+                  {% if score.avg_attention >= 70 %}badge-success
+                  {% elif score.avg_attention >= 40 %}badge-warning
+                  {% else %}badge-danger{% endif %}">
+                  {{ score.label }}
+                </span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">
+                <i class="fas fa-chart-line fa-2x mb-2 d-block"></i>
+                No attention data yet. Attend a session to see your scores.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

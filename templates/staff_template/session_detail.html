@@ -1,0 +1,478 @@
+{% extends 'base.html' %}
+{% block title %}Session Detail{% endblock %}
+{% block page_title %}Session #{{ session.id }} — Live Analysis{% endblock %}
+
+{% block sidebar_menu %}
+<li class="nav-item"><a href="{% url 'staff_home' %}" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>Dashboard</p></a></li>
+<li class="nav-item"><a href="{% url 'staff_upload_session' %}" class="nav-link"><i class="nav-icon fas fa-video"></i><p>Upload Session Video</p></a></li>
+<li class="nav-item"><a href="{% url 'staff_sessions' %}" class="nav-link active"><i class="nav-icon fas fa-chart-bar"></i><p>My Sessions</p></a></li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.live-badge {
+  display:inline-flex;align-items:center;gap:6px;
+  background:#e74c3c;color:white;padding:4px 14px;
+  border-radius:20px;font-size:12px;font-weight:700;
+  animation:pulse 1.5s infinite;
+}
+.live-badge.done{background:#27ae60;animation:none;}
+.live-badge.failed{background:#95a5a6;animation:none;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.live-dot{width:8px;height:8px;background:white;border-radius:50%;}
+.info-box{border-radius:12px;}
+.chart-container{position:relative;height:240px;}
+.distracted-badge{background:#fff5f5;border:1px solid #f5c6cb;border-radius:8px;padding:10px 14px;}
+.score-breakdown{font-size:11px;color:#888;margin-top:2px;}
+.pose-pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
+
+/* Live Feed Panel */
+#live-feed-panel {
+  background:#0d0d0d;border-radius:12px;overflow:hidden;
+  position:relative;
+}
+#live-feed-img {
+  width:100%;display:block;
+  min-height:240px;object-fit:contain;
+  background:#111;
+}
+#live-feed-overlay {
+  position:absolute;top:10px;left:10px;
+  display:flex;align-items:center;gap:8px;
+}
+#live-feed-badge {
+  background:rgba(231,76,60,0.9);color:white;
+  padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;
+  animation:pulse 1.5s infinite;
+}
+#live-feed-badge.done{background:rgba(39,174,96,0.9);animation:none;}
+#feed-frame-info{
+  background:rgba(0,0,0,0.6);color:#aef;
+  padding:2px 8px;border-radius:8px;font-size:10px;
+}
+#processing-banner{
+  background:linear-gradient(135deg,#0f3460,#533483);
+  color:white;border-radius:12px;padding:14px 20px;margin-bottom:16px;
+}
+.student-row-new{animation:fadeIn 0.4s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Status Banner -->
+<div id="processing-banner">
+  <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+    <div class="d-flex align-items-center" style="gap:12px;">
+      <span id="live-badge" class="live-badge"><span class="live-dot"></span>LIVE</span>
+      <div>
+        <strong id="status-text">Analysing video...</strong>
+        <div id="progress-text" style="font-size:12px;opacity:0.75;margin-top:2px;"></div>
+      </div>
+    </div>
+    <div class="text-right">
+      <div style="font-size:24px;font-weight:700;" id="live-avg">--</div>
+      <small style="opacity:0.7;">Avg Class Attention</small>
+    </div>
+  </div>
+  <div class="progress mt-2" style="height:5px;border-radius:3px;background:rgba(255,255,255,0.2);">
+    <div id="progress-bar" class="progress-bar bg-white" style="width:0%;transition:width 1s;"></div>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-3">
+  <div class="col-md-3 col-6">
+    <div class="info-box">
+      <span class="info-box-icon bg-primary"><i class="fas fa-calendar"></i></span>
+      <div class="info-box-content"><span class="info-box-text">Date</span><span class="info-box-number">{{ session.session_date }}</span></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="info-box">
+      <span class="info-box-icon bg-warning"><i class="fas fa-brain"></i></span>
+      <div class="info-box-content"><span class="info-box-text">Avg Attention</span><span class="info-box-number" id="card-avg">--</span></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="info-box">
+      <span class="info-box-icon bg-info"><i class="fas fa-users"></i></span>
+      <div class="info-box-content"><span class="info-box-text">Students</span><span class="info-box-number" id="card-students">0</span></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="info-box">
+      <span class="info-box-icon bg-secondary"><i class="fas fa-film"></i></span>
+      <div class="info-box-content"><span class="info-box-text">Frames Done</span><span class="info-box-number" id="card-frames">0</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Distraction Alerts -->
+<div id="distraction-alerts" style="display:none;" class="mb-3">
+  <div class="card border-danger">
+    <div class="card-header bg-danger text-white py-2">
+      <i class="fas fa-exclamation-triangle mr-2"></i>
+      <strong>Distraction Alert</strong> — <span id="distracted-count">0</span> student(s) showing low engagement
+    </div>
+    <div class="card-body py-2" id="distracted-list"></div>
+  </div>
+</div>
+
+<!-- LIVE FEED + Timeline side by side -->
+<div class="row">
+  <!-- Live Frame Slideshow -->
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header d-flex align-items-center">
+        <i class="fas fa-video mr-2" style="color:#e94560;"></i>
+        <h3 class="card-title mb-0">Live Analysis Feed</h3>
+        <small class="ml-2 text-muted">Updates with each frame</small>
+      </div>
+      <div class="card-body p-0">
+        <div id="live-feed-panel">
+          <img id="live-feed-img" src="" alt="Processing..."
+               onerror="this.style.display='none'" style="display:none;"/>
+          <div id="live-feed-placeholder" style="height:260px;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#555;">
+            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+            <span style="font-size:13px;">Waiting for first frame...</span>
+          </div>
+          <div id="live-feed-overlay">
+            <span id="live-feed-badge">● LIVE</span>
+            <span id="feed-frame-info">Frame 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline Chart -->
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header">
+        <i class="fas fa-chart-line mr-2" style="color:#0f3460;"></i>
+        <h3 class="card-title mb-0">Live Attention Timeline</h3>
+        <small class="ml-2 text-muted">Updates every 2 seconds</small>
+      </div>
+      <div class="card-body">
+        <div class="chart-container"><canvas id="timelineChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Emotion + Breakdown -->
+<div class="row mt-3">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header"><i class="fas fa-smile mr-2" style="color:#0f3460;"></i><h3 class="card-title mb-0">Emotion Distribution</h3></div>
+      <div class="card-body"><canvas id="emotionChart" height="220"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header"><i class="fas fa-sliders-h mr-2" style="color:#0f3460;"></i><h3 class="card-title mb-0">Score Breakdown</h3><small class="ml-1 text-muted" style="font-size:10px;">Pose+Yaw+EAR+Emotion</small></div>
+      <div class="card-body"><div class="chart-container"><canvas id="breakdownChart"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header"><i class="fas fa-compass mr-2" style="color:#0f3460;"></i><h3 class="card-title mb-0">Head Pose Summary</h3></div>
+      <div class="card-body"><div class="chart-container"><canvas id="poseChart"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Annotated Video Download (shown when done) -->
+<div id="video-section" style="display:none;" class="mt-3">
+  <div class="card" style="background:linear-gradient(135deg,#0f3460,#533483);color:white;">
+    <div class="card-body d-flex align-items-center justify-content-between">
+      <div>
+        <h5 class="mb-1" style="color:white;"><i class="fas fa-film mr-2"></i>Full Annotated Video Ready</h5>
+        <p class="mb-0" style="opacity:0.8;font-size:12px;">Complete video with all annotations — bounding boxes, scores, pose axes, EAR values.</p>
+      </div>
+      <a id="video-download-btn" href="#" download class="btn btn-light" style="color:#0f3460;font-weight:600;">
+        <i class="fas fa-download mr-1"></i> Download Video
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Student Table -->
+<div class="card mt-3">
+  <div class="card-header d-flex align-items-center">
+    <i class="fas fa-table mr-2" style="color:#0f3460;"></i>
+    <h3 class="card-title mb-0">Detailed Student Analysis</h3>
+    <span class="ml-2 badge badge-info">{{ session.subject.name|default:"General" }}</span>
+    <div class="ml-auto">
+      <a href="{% url 'session_pdf' session.id %}" class="btn btn-sm btn-danger">
+        <i class="fas fa-file-pdf mr-1"></i> PDF Report
+      </a>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-hover table-sm mb-0">
+      <thead class="thead-light">
+        <tr><th>#</th><th>Student</th><th>Attention</th><th>Emotion</th><th>Yaw°</th><th>Pitch°</th><th>EAR</th><th>Eyes Closed</th><th>Attendance</th><th>Label</th></tr>
+      </thead>
+      <tbody id="student-table-body">
+        <tr id="loading-row">
+          <td colspan="10" class="text-center text-muted py-4">
+            <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
+            Scores will appear here as video is analysed...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="mt-3 mb-4">
+  <a href="{% url 'staff_sessions' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left mr-1"></i> Back to Sessions
+  </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+const SESSION_ID = {{ session.id }};
+const API_URL    = "{% url 'session_live_data' session.id %}";
+let   IS_DONE    = '{{ session.status }}' === 'done';
+let   POLL_INT   = null;
+let   LAST_FRAME = -1;
+
+// ── Charts ──────────────────────────────────────────────────────────────────
+const timelineChart = new Chart(document.getElementById('timelineChart'), {
+  type:'line',
+  data:{labels:[],datasets:[{label:'Avg Attention %',data:[],
+    borderColor:'#0f3460',backgroundColor:'rgba(15,52,96,0.08)',
+    borderWidth:2.5,tension:0.4,fill:true,pointBackgroundColor:[],pointRadius:4
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},
+    plugins:{legend:{display:false}},
+    scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}},x:{grid:{display:false},title:{display:true,text:'Time (s)'}}}
+  }
+});
+
+const emotionChart = new Chart(document.getElementById('emotionChart'), {
+  type:'doughnut',
+  data:{labels:[],datasets:[{data:[],
+    backgroundColor:['#27ae60','#3498db','#f39c12','#e74c3c','#9b59b6','#1abc9c','#e67e22'],
+    borderWidth:2
+  }]},
+  options:{responsive:true,animation:{duration:500},plugins:{legend:{position:'bottom',labels:{font:{size:10}}}}}
+});
+
+const breakdownChart = new Chart(document.getElementById('breakdownChart'), {
+  type:'bar',
+  data:{labels:[],datasets:[
+    {label:'Pose',data:[],backgroundColor:'#0f3460',borderRadius:3},
+    {label:'EAR', data:[],backgroundColor:'#533483',borderRadius:3},
+    {label:'Emotion',data:[],backgroundColor:'#e94560',borderRadius:3},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},
+    plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},
+    scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}
+  }
+});
+
+const poseChart = new Chart(document.getElementById('poseChart'), {
+  type:'bar',
+  data:{labels:[],datasets:[
+    {label:'Yaw(°)',data:[],backgroundColor:'#3498db',borderRadius:3},
+    {label:'Pitch(°)',data:[],backgroundColor:'#e74c3c',borderRadius:3},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},
+    plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},
+    scales:{y:{ticks:{callback:v=>v+'°'}},x:{grid:{display:false}}}
+  }
+});
+
+// ── Poll API ─────────────────────────────────────────────────────────────────
+async function poll() {
+  try {
+    const data = await (await fetch(API_URL)).json();
+
+    updateBanner(data);
+    updateCards(data);
+    updateTimeline(data);
+    updateEmotionChart(data);
+    updateBreakdownChart(data);
+    updatePoseChart(data);
+    updateStudentTable(data);
+    updateDistractionAlerts(data);
+    updateLiveFeed(data);
+
+    if (data.status === 'done' || data.status === 'failed') {
+      clearInterval(POLL_INT);
+      IS_DONE = true;
+      if (data.status === 'done') showVideoSection();
+    }
+  } catch(e) { console.error(e); }
+}
+
+// ── Live Feed Slideshow ───────────────────────────────────────────────────────
+function updateLiveFeed(data) {
+  if (data.latest_frame < 0) return;
+  if (data.latest_frame === LAST_FRAME && data.status !== 'done') return;
+  LAST_FRAME = data.latest_frame;
+
+  const img = document.getElementById('live-feed-img');
+  const placeholder = document.getElementById('live-feed-placeholder');
+  const frameInfo   = document.getElementById('feed-frame-info');
+  const feedBadge   = document.getElementById('live-feed-badge');
+
+  const src = `/session/${SESSION_ID}/frame/${data.latest_frame}/`;
+  const tmp = new Image();
+  tmp.onload = () => {
+    img.src = src;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+    frameInfo.textContent = `Frame ${data.latest_frame} · ${data.frames_done} analysed`;
+  };
+  tmp.onerror = () => {};
+  tmp.src = src;
+
+  if (data.status === 'done') {
+    feedBadge.textContent = '✓ COMPLETE';
+    feedBadge.className = 'done';
+    feedBadge.style.animation = 'none';
+  }
+}
+
+// ── Banner ────────────────────────────────────────────────────────────────────
+function updateBanner(data) {
+  const badge = document.getElementById('live-badge');
+  const statusText = document.getElementById('status-text');
+  const progressText = document.getElementById('progress-text');
+  document.getElementById('live-avg').textContent = data.avg_attention ? data.avg_attention.toFixed(1)+'%' : '--';
+
+  if (data.status === 'done') {
+    badge.innerHTML = '✓ COMPLETE'; badge.className = 'live-badge done';
+    statusText.textContent = 'Analysis complete';
+    progressText.textContent = `${data.total_students} students · ${data.processing_time}s processing time`;
+    document.getElementById('progress-bar').style.width = '100%';
+  } else if (data.status === 'failed') {
+    badge.innerHTML = '✗ FAILED'; badge.className = 'live-badge failed';
+    statusText.textContent = 'Processing failed';
+  } else {
+    progressText.textContent = `${data.frames_done} frames analysed · ${data.total_students} students found`;
+    if (data.frames_processed > 0)
+      document.getElementById('progress-bar').style.width =
+        Math.min(95, (data.frames_done / data.frames_processed * 100)).toFixed(0) + '%';
+  }
+}
+
+// ── Cards ─────────────────────────────────────────────────────────────────────
+function updateCards(data) {
+  if (data.avg_attention) document.getElementById('card-avg').textContent = data.avg_attention.toFixed(1)+'%';
+  document.getElementById('card-students').textContent = data.total_students;
+  document.getElementById('card-frames').textContent   = data.frames_done;
+}
+
+// ── Charts ────────────────────────────────────────────────────────────────────
+function updateTimeline(data) {
+  if (!data.timeline_labels.length) return;
+  const ds = timelineChart.data.datasets[0];
+  timelineChart.data.labels = data.timeline_labels;
+  ds.data = data.timeline_data;
+  ds.pointBackgroundColor = data.timeline_data.map(v=>v>=70?'#27ae60':v>=40?'#f39c12':'#e74c3c');
+  timelineChart.update('none');
+}
+
+function updateEmotionChart(data) {
+  if (!data.emotion_labels.length) return;
+  emotionChart.data.labels = data.emotion_labels;
+  emotionChart.data.datasets[0].data = data.emotion_values;
+  emotionChart.update();
+}
+
+function updateBreakdownChart(data) {
+  if (!data.score_labels.length) return;
+  breakdownChart.data.labels = data.score_labels;
+  breakdownChart.data.datasets[0].data = data.pose_scores;
+  breakdownChart.data.datasets[1].data = data.ear_scores;
+  breakdownChart.data.datasets[2].data = data.emotion_scores;
+  breakdownChart.update();
+}
+
+function updatePoseChart(data) {
+  if (!data.score_labels.length) return;
+  poseChart.data.labels = data.score_labels;
+  poseChart.data.datasets[0].data = data.yaw_data;
+  poseChart.data.datasets[1].data = data.pitch_data;
+  poseChart.update();
+}
+
+// ── Student Table ─────────────────────────────────────────────────────────────
+function updateStudentTable(data) {
+  if (!data.students.length) return;
+  document.getElementById('loading-row')?.remove();
+  const tbody = document.getElementById('student-table-body');
+  tbody.innerHTML = data.students.map((s,i) => {
+    const ac = s.avg_attention>=70?'bg-success':s.avg_attention>=40?'bg-warning':'bg-danger';
+    const lbl= s.avg_attention>=70?'Attentive':s.avg_attention>=40?'Moderate':'Distracted';
+    const lc = s.avg_attention>=70?'badge-success':s.avg_attention>=40?'badge-warning':'badge-danger';
+    const yc = Math.abs(s.avg_yaw)>20?'bg-warning text-dark':'bg-success text-white';
+    const pc = Math.abs(s.avg_pitch)>15?'bg-warning text-dark':'bg-success text-white';
+    const ec = s.avg_ear<0.20?'text-danger font-weight-bold':'text-success';
+    const eyc= s.eyes_closed_pct>30?'badge-danger':s.eyes_closed_pct>15?'badge-warning':'badge-success';
+    const name = s.student_name || `Student ${i+1}`;
+    const isRecognised = !name.startsWith('Student ');
+    return `<tr class="student-row-new">
+      <td>${i+1}</td>
+      <td>
+        <strong>${name}</strong>
+        ${isRecognised ? '<span class="badge badge-success ml-1" style="font-size:9px;">✓ ID</span>' : ''}
+        <br><small class="text-muted">Roll: ${s.roll_no}</small>
+      </td>
+      <td style="min-width:130px;">
+        <div class="progress" style="height:16px;border-radius:8px;">
+          <div class="progress-bar ${ac}" style="width:${s.avg_attention}%;font-size:10px;font-weight:600;">${s.avg_attention.toFixed(1)}%</div>
+        </div>
+        <div class="score-breakdown">📐${s.pose_score.toFixed(0)} 👁${s.ear_score.toFixed(0)} 😊${s.emotion_score.toFixed(0)}</div>
+      </td>
+      <td style="font-size:12px;">${s.dominant_emotion?s.dominant_emotion[0].toUpperCase()+s.dominant_emotion.slice(1):'—'}</td>
+      <td><span class="pose-pill ${yc}">${s.avg_yaw.toFixed(1)}°</span></td>
+      <td><span class="pose-pill ${pc}">${s.avg_pitch.toFixed(1)}°</span></td>
+      <td class="${ec}">${s.avg_ear.toFixed(3)}</td>
+      <td><span class="badge ${eyc}">${s.eyes_closed_pct.toFixed(1)}%</span></td>
+      <td>${isRecognised ? '<span class="badge badge-success">Present</span>' : '<span class="badge badge-secondary">Unknown</span>'}</td>
+      <td><span class="badge badge-pill ${lc}">${lbl}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Distraction Alerts ────────────────────────────────────────────────────────
+function updateDistractionAlerts(data) {
+  const distracted = data.students.filter(s => s.avg_attention < 50);
+  const el = document.getElementById('distraction-alerts');
+  if (!distracted.length) { el.style.display='none'; return; }
+  el.style.display = 'block';
+  document.getElementById('distracted-count').textContent = distracted.length;
+  document.getElementById('distracted-list').innerHTML =
+    '<div class="row">' + distracted.map(s=>`
+      <div class="col-md-3 mb-2">
+        <div class="distracted-badge">
+          <i class="fas fa-user-times text-danger mr-1"></i>
+          <strong>${s.student_name}</strong><br>
+          <small class="text-danger">${s.avg_attention.toFixed(1)}% attention</small><br>
+          <small class="text-muted">Yaw:${s.avg_yaw.toFixed(1)}° EAR:${s.avg_ear.toFixed(2)}</small>
+        </div>
+      </div>`).join('') + '</div>';
+}
+
+function showVideoSection() {
+  document.getElementById('video-section').style.display='block';
+  document.getElementById('video-download-btn').href =
+    '/media/annotated/session_'+SESSION_ID+'_annotated.mp4';
+}
+
+// ── Start ─────────────────────────────────────────────────────────────────────
+poll();
+POLL_INT = IS_DONE ? null : setInterval(poll, 2000);
+</script>
+{% endblock %}

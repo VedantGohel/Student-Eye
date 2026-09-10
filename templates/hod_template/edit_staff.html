@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Edit Staff{% endblock %}
+{% block page_title %}Edit Staff{% endblock %}
+
+{% block sidebar_menu %}
+<li class="nav-item"><a href="{% url 'hod_home' %}" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>Dashboard</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_manage_staff' %}" class="nav-link active"><i class="nav-icon fas fa-users-cog"></i><p>Manage Staff</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_student' %}" class="nav-link"><i class="nav-icon fas fa-user-plus"></i><p>Add Student</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_manage_students' %}" class="nav-link"><i class="nav-icon fas fa-user-graduate"></i><p>Manage Students</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_course' %}" class="nav-link"><i class="nav-icon fas fa-book"></i><p>Add Course</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_sessions' %}" class="nav-link"><i class="nav-icon fas fa-chart-bar"></i><p>Engagement Reports</p></a></li>
+{% endblock %}
+
+{% block extra_css %}
+<style>.form-control{border-radius:8px;border:1px solid #ddd;font-size:14px;}.form-control:focus{border-color:#0f3460;box-shadow:none;}</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header bg-warning">
+        <h3 class="card-title mb-0"><i class="fas fa-edit mr-2"></i>Edit Staff: {{ staff.user.get_full_name }}</h3>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          {% csrf_token %}
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>First Name</label>
+                <input type="text" name="first_name" class="form-control" value="{{ form.first_name.value }}" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" name="last_name" class="form-control" value="{{ form.last_name.value }}" required>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="email" class="form-control" value="{{ form.email.value }}" required>
+          </div>
+          <div class="form-group">
+            <label>Course</label>
+            <select name="course" class="form-control">
+              <option value="">— Select Course —</option>
+              {% for course in form.course.field.queryset %}
+                <option value="{{ course.id }}" {% if form.course.value == course.id|stringformat:"s" %}selected{% endif %}>{{ course.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Address</label>
+            <textarea name="address" class="form-control" rows="3">{{ form.address.value }}</textarea>
+          </div>
+          <button type="submit" class="btn btn-warning px-4"><i class="fas fa-save mr-1"></i> Update</button>
+          <a href="{% url 'hod_manage_staff' %}" class="btn btn-secondary ml-2">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

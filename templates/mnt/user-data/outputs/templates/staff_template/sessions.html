@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}My Sessions{% endblock %}
+{% block page_title %}My Sessions{% endblock %}
+{% block sidebar_menu %}
+<li class="nav-item"><a href="{% url 'staff_home' %}" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>Dashboard</p></a></li>
+<li class="nav-item"><a href="{% url 'staff_upload_session' %}" class="nav-link"><i class="nav-icon fas fa-video"></i><p>Upload Session Video</p></a></li>
+<li class="nav-item"><a href="{% url 'staff_sessions' %}" class="nav-link active"><i class="nav-icon fas fa-chart-bar"></i><p>My Sessions</p></a></li>
+<li class="nav-item"><a href="{% url 'staff_take_attendance' %}" class="nav-link"><i class="nav-icon fas fa-clipboard-check"></i><p>Take Attendance</p></a></li>
+{% endblock %}
+{% block content %}
+<div class="row mb-3">
+  <div class="col-12">
+    <a href="{% url 'staff_upload_session' %}" class="btn btn-primary">
+      <i class="fas fa-plus mr-1"></i> Upload New Session
+    </a>
+  </div>
+</div>
+<div class="card">
+  <div class="card-header"><h3 class="card-title"><i class="fas fa-history mr-2"></i>All My Sessions</h3></div>
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead class="thead-light">
+        <tr><th>#</th><th>Date</th><th>Subject</th><th>Avg Attention</th><th>Students</th><th>Status</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for s in sessions %}
+        <tr>
+          <td>{{ s.id }}</td>
+          <td>{{ s.session_date }}</td>
+          <td>{{ s.subject.name|default:"—" }}</td>
+          <td>
+            {% if s.avg_attention %}
+              <div class="progress" style="height:18px;border-radius:9px;min-width:120px;">
+                <div class="progress-bar {% if s.avg_attention >= 70 %}bg-success{% elif s.avg_attention >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                     style="width:{{ s.avg_attention }}%;">{{ s.avg_attention|floatformat:1 }}%</div>
+              </div>
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ s.total_students }}</td>
+          <td>
+            <span class="badge {% if s.status == 'done' %}badge-success{% elif s.status == 'processing' %}badge-warning{% elif s.status == 'failed' %}badge-danger{% else %}badge-secondary{% endif %}">
+              {{ s.get_status_display }}
+            </span>
+          </td>
+          <td>
+            {% if s.status == 'done' %}
+              <a href="{% url 'session_detail' s.id %}" class="btn btn-xs btn-info"><i class="fas fa-eye"></i> View</a>
+            {% elif s.status == 'failed' %}
+              <small class="text-danger">{{ s.error_message|truncatechars:40 }}</small>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-video fa-2x d-block mb-2"></i>No sessions yet. <a href="{% url 'staff_upload_session' %}">Upload your first video</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

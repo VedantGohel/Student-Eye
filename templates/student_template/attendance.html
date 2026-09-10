@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}My Attendance{% endblock %}
+{% block page_title %}My Attendance{% endblock %}
+{% block sidebar_menu %}
+<li class="nav-item"><a href="{% url 'student_home' %}" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>Dashboard</p></a></li>
+<li class="nav-item"><a href="{% url 'student_attention_history' %}" class="nav-link"><i class="nav-icon fas fa-chart-line"></i><p>Attention History</p></a></li>
+<li class="nav-item"><a href="{% url 'student_attendance' %}" class="nav-link active"><i class="nav-icon fas fa-calendar-check"></i><p>My Attendance</p></a></li>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><h3 class="card-title"><i class="fas fa-calendar-check mr-2"></i>My Attendance Records</h3></div>
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead class="thead-light">
+        <tr><th>Date</th><th>Subject</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for r in reports %}
+        <tr>
+          <td>{{ r.attendance.date }}</td>
+          <td>{{ r.attendance.subject.name }}</td>
+          <td>
+            <span class="badge {% if r.status %}badge-success{% else %}badge-danger{% endif %}">
+              {% if r.status %}Present{% else %}Absent{% endif %}
+            </span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="text-center text-muted py-4">No attendance records yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

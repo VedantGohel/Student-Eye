@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block title %}Add Student{% endblock %}
+{% block page_title %}Add Student{% endblock %}
+
+{% block sidebar_menu %}
+<li class="nav-item"><a href="{% url 'hod_home' %}" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>Dashboard</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_staff' %}" class="nav-link"><i class="nav-icon fas fa-chalkboard-teacher"></i><p>Add Staff</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_manage_staff' %}" class="nav-link"><i class="nav-icon fas fa-users-cog"></i><p>Manage Staff</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_student' %}" class="nav-link active"><i class="nav-icon fas fa-user-plus"></i><p>Add Student</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_manage_students' %}" class="nav-link"><i class="nav-icon fas fa-user-graduate"></i><p>Manage Students</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_course' %}" class="nav-link"><i class="nav-icon fas fa-book"></i><p>Add Course</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_subject' %}" class="nav-link"><i class="nav-icon fas fa-book-open"></i><p>Add Subject</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_sessions' %}" class="nav-link"><i class="nav-icon fas fa-chart-bar"></i><p>Engagement Reports</p></a></li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-control{border-radius:8px;border:1px solid #ddd;font-size:14px;}
+  .form-control:focus{border-color:#0f3460;box-shadow:none;}
+  .photo-preview{width:120px;height:120px;border-radius:50%;object-fit:cover;
+    border:3px solid #0f3460;display:none;margin:10px auto 0;}
+  .photo-upload-zone{border:2px dashed #0f3460;border-radius:12px;padding:20px;
+    text-align:center;background:#f8f9ff;cursor:pointer;transition:background 0.2s;}
+  .photo-upload-zone:hover{background:#eef0ff;}
+  .face-tip{background:#fff3cd;border:1px solid #ffc107;border-radius:8px;
+    padding:10px 14px;font-size:12px;margin-top:10px;}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-9">
+    <div class="card">
+      <div class="card-header bg-success text-white">
+        <h3 class="card-title mb-0"><i class="fas fa-user-graduate mr-2"></i>Add New Student</h3>
+      </div>
+      <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="row">
+            <!-- Left: Student details -->
+            <div class="col-md-8">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>First Name *</label>
+                    <input type="text" name="first_name" class="form-control" required>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Last Name *</label>
+                    <input type="text" name="last_name" class="form-control" required>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Email Address *</label>
+                <input type="email" name="email" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label>Password *</label>
+                <input type="password" name="password" class="form-control" required>
+              </div>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Roll Number</label>
+                    <input type="text" name="roll_no" class="form-control" placeholder="e.g. 2024001">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Session / Year</label>
+                    <input type="text" name="session" class="form-control" placeholder="e.g. 2023-24">
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Course</label>
+                <select name="course" class="form-control">
+                  <option value="">— Select Course —</option>
+                  {% for course in form.course.field.queryset %}
+                    <option value="{{ course.id }}">{{ course.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Address</label>
+                <textarea name="address" class="form-control" rows="2"></textarea>
+              </div>
+            </div>
+
+            <!-- Right: Photo upload -->
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="d-block font-weight-bold">
+                  <i class="fas fa-camera mr-1"></i> Face Photo
+                  <span class="badge badge-warning ml-1">Required for attendance</span>
+                </label>
+
+                <div class="photo-upload-zone" onclick="document.getElementById('photoInput').click()">
+                  <img id="photoPreview" class="photo-preview" src="" alt="Preview"/>
+                  <div id="photoPlaceholder">
+                    <i class="fas fa-user-circle fa-3x mb-2" style="color:#0f3460;opacity:0.4;"></i>
+                    <p class="mb-0 font-weight-bold" style="font-size:13px;">Click to upload photo</p>
+                    <small class="text-muted">JPG, PNG — max 5MB</small>
+                  </div>
+                </div>
+
+                <input type="file" id="photoInput" name="profile_pic"
+                       accept="image/*" style="display:none;"
+                       onchange="previewPhoto(this)">
+
+                <div class="face-tip mt-2">
+                  <i class="fas fa-lightbulb mr-1 text-warning"></i>
+                  <strong>Tips for good recognition:</strong>
+                  <ul class="mb-0 mt-1 pl-3">
+                    <li>Clear front-facing photo</li>
+                    <li>Good lighting, no shadows</li>
+                    <li>Face fills 50%+ of frame</li>
+                    <li>No sunglasses or masks</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+          <button type="submit" class="btn btn-success px-4">
+            <i class="fas fa-save mr-1"></i> Add Student
+          </button>
+          <a href="{% url 'hod_manage_students' %}" class="btn btn-secondary ml-2">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewPhoto(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const preview = document.getElementById('photoPreview');
+      const placeholder = document.getElementById('photoPlaceholder');
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      placeholder.style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+</script>
+{% endblock %}

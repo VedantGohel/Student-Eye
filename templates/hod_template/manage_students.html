@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Manage Students{% endblock %}
+{% block page_title %}Manage Students{% endblock %}
+
+{% block sidebar_menu %}
+<li class="nav-item"><a href="{% url 'hod_home' %}" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>Dashboard</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_staff' %}" class="nav-link"><i class="nav-icon fas fa-chalkboard-teacher"></i><p>Add Staff</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_manage_staff' %}" class="nav-link"><i class="nav-icon fas fa-users-cog"></i><p>Manage Staff</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_student' %}" class="nav-link"><i class="nav-icon fas fa-user-plus"></i><p>Add Student</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_manage_students' %}" class="nav-link active"><i class="nav-icon fas fa-user-graduate"></i><p>Manage Students</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_course' %}" class="nav-link"><i class="nav-icon fas fa-book"></i><p>Add Course</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_add_subject' %}" class="nav-link"><i class="nav-icon fas fa-book-open"></i><p>Add Subject</p></a></li>
+<li class="nav-item"><a href="{% url 'hod_sessions' %}" class="nav-link"><i class="nav-icon fas fa-chart-bar"></i><p>Engagement Reports</p></a></li>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats bar -->
+{% with no_photo=students|length %}
+<div class="row mb-3">
+  <div class="col-md-4">
+    <div class="info-box" style="border-radius:10px;">
+      <span class="info-box-icon bg-success"><i class="fas fa-user-graduate"></i></span>
+      <div class="info-box-content">
+        <span class="info-box-text">Total Students</span>
+        <span class="info-box-number">{{ students|length }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="info-box" style="border-radius:10px;">
+      <span class="info-box-icon bg-primary"><i class="fas fa-camera"></i></span>
+      <div class="info-box-content">
+        <span class="info-box-text">With Face Photo</span>
+        <span class="info-box-number">
+          {% with count=0 %}
+            {% for s in students %}{% if s.user.profile_pic %}{% with count=count|add:1 %}{% endwith %}{% endif %}{% endfor %}
+          {% endwith %}
+          {{ students|length }}
+        </span>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <a href="{% url 'hod_add_student' %}" class="btn btn-success btn-block" style="height:60px;font-size:15px;border-radius:10px;line-height:2;">
+      <i class="fas fa-plus mr-2"></i> Add New Student
+    </a>
+  </div>
+</div>
+{% endwith %}
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title"><i class="fas fa-user-graduate mr-2"></i>All Students</h3>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead class="thead-light">
+        <tr>
+          <th>Photo</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Roll No</th>
+          <th>Course</th>
+          <th>Session</th>
+          <th>Face ID</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td>
+            {% if s.user.profile_pic %}
+              <img src="{{ s.user.profile_pic.url }}"
+                   style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #27ae60;"
+                   alt="{{ s.user.get_full_name }}"/>
+            {% else %}
+              <div style="width:40px;height:40px;border-radius:50%;background:#f0f0f0;
+                display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-user" style="color:#ccc;"></i>
+              </div>
+            {% endif %}
+          </td>
+          <td><strong>{{ s.user.get_full_name }}</strong></td>
+          <td style="font-size:12px;">{{ s.user.email }}</td>
+          <td>{{ s.roll_no|default:"—" }}</td>
+          <td>{{ s.course.name|default:"—" }}</td>
+          <td>{{ s.session|default:"—" }}</td>
+          <td>
+            {% if s.user.profile_pic %}
+              <span class="badge badge-success">
+                <i class="fas fa-check mr-1"></i>Ready
+              </span>
+            {% else %}
+              <span class="badge badge-danger">
+                <i class="fas fa-times mr-1"></i>No photo
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'hod_edit_student' s.id %}" class="btn btn-xs btn-warning mr-1">
+              <i class="fas fa-edit"></i> Edit
+            </a>
+            <a href="{% url 'hod_delete_student' s.id %}"
+               onclick="return confirm('Delete {{ s.user.get_full_name }}?')"
+               class="btn btn-xs btn-danger">
+              <i class="fas fa-trash"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="text-center text-muted py-4">
+            No students added yet.
+            <a href="{% url 'hod_add_student' %}">Add your first student</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
