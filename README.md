@@ -1,6 +1,6 @@
 <div align="center">
 
-# 👁️ ClassEye — AI-Driven Classroom Engagement Monitoring System
+# 👁️ StudentEye — AI-Driven Classroom Engagement Monitoring System
 
 **Real-time student attention analysis powered by computer vision and deep learning — turning ordinary classroom video into actionable engagement insight.**
 
@@ -38,7 +38,7 @@
 
 ## 🎯 Overview
 
-**ClassEye** is a Django-based classroom analytics platform that watches a recorded lecture the way an attentive observer would — and reports back with numbers instead of guesses.
+**StudentEye** is a Django-based classroom analytics platform that watches a recorded lecture the way an attentive observer would — and reports back with numbers instead of guesses.
 
 ### The Problem
 
@@ -46,7 +46,7 @@ Teachers cannot simultaneously teach and gauge whether all forty students in the
 
 ### The Solution
 
-ClassEye takes a classroom video, detects every face in it, and — frame by frame — measures where each student is looking, whether their eyes are open, and what their facial expression suggests about their state of mind. These signals are fused into a single **attention score** per student, tracked across the length of the session, and rendered as a live dashboard, a downloadable PDF report, and an annotated video.
+StudentEye takes a classroom video, detects every face in it, and — frame by frame — measures where each student is looking, whether their eyes are open, and what their facial expression suggests about their state of mind. These signals are fused into a single **attention score** per student, tracked across the length of the session, and rendered as a live dashboard, a downloadable PDF report, and an annotated video.
 
 ### Who It Is For
 
